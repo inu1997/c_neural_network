@@ -5,24 +5,44 @@
 #include <string.h>
 #include <math.h>
 
+static int random_pick(float rate);
+
 static float nn_gen_random();
+
+static float nn_gen_random_zero_to_one();
 
 static int nn_compute_n_weight(NeuralNetwork *nn);
 
+#if USE_BIAS
 static void nn_forward_propagation(NeuralNetwork *nn, float *input, int n_input, float *output, int n_output, float *bias, float *weight);
+#else
+static void nn_forward_propagation(NeuralNetwork *nn, float *input, int n_input, float *output, int n_output, float *weight);
+#endif
 
 static void nn_correct(float *weight, float *delta, float *input, int n_input, int n_output, float rate);
 
+static int
+random_pick(float rate)
+{
+	if (nn_gen_random_zero_to_one() < rate)
+		return 1;
+	return 0;
+}
+
 static float
 nn_gen_random()
+{
+    return nn_gen_random_zero_to_one() - 0.5f;	/* A random -0.5 ~ 0.5 */
+}
+
+static float nn_gen_random_zero_to_one()
 {
     float r;
 
     r = rand();             /* A random 0 ~ RAND_MAX */
     r /= (float)RAND_MAX;   /* A random 0 ~ 1.0 */
-    r -= 0.5;               /* A random -0.5 ~ 0.5 */
 
-    return r;
+	return r;
 }
 
 static int
@@ -45,15 +65,24 @@ nn_compute_n_weight(NeuralNetwork *nn)
     return n_weight;
 }
 
+#if USE_BIAS
 static void
 nn_forward_propagation(NeuralNetwork *nn, float *input, int n_input, float *output, int n_output, float *bias, float *weight)
+#else
+static void
+nn_forward_propagation(NeuralNetwork *nn, float *input, int n_input, float *output, int n_output, float *weight)
+#endif
 {
     int i; 
     int j;
 
     for (i = 0; i < n_output; i++)
     {
+#if USE_BIAS
         output[i] = bias[i];
+#else
+        output[i] = 0;
+#endif
         /* w vector dot i vector + bias */
         for (j = 0; j < n_input; j++)
         {
@@ -106,23 +135,61 @@ nn_create(int n_input, int n_output, int n_hidden, int n_neuro_per_hidden, ACT_F
     nn->_n_neuro = n_output + n_hidden  * n_neuro_per_hidden;
     nn->_n_weight = nn_compute_n_weight(nn);
 
-    nn->bias = calloc(nn->_n_neuro, sizeof(float));
-    nn->output = calloc(nn->_n_neuro, sizeof(float));
-    nn->delta = calloc(nn->_n_neuro, sizeof(float));
-    nn->weight = calloc(nn->_n_weight, sizeof(float));
+    nn->weight = malloc(nn->_n_weight * sizeof(float));
+#if USE_BIAS
+    nn->bias = malloc(nn->_n_neuro * sizeof(float));
+#endif
+    nn->output = malloc(nn->_n_neuro * sizeof(float));
+    nn->delta = malloc(nn->_n_neuro * sizeof(float));
 
     nn_randomize(nn);
 
     return nn;
 }
 
+NeuralNetwork *
+nn_produce(NeuralNetwork *a, NeuralNetwork *b)
+{
+	int i;
+	NeuralNetwork *nn;
+
+	if (a->n_input != b->n_input)
+		return NULL;
+	if (a->n_output != b->n_output)
+		return NULL;
+	if (a->n_hidden != b->n_hidden)
+		return NULL;
+	if (a->n_neuro_per_hidden != b->n_neuro_per_hidden)
+		return NULL;
+	if (a->act_func_type != b->act_func_type)
+		return NULL;
+
+	nn = nn_create(a->n_input, a->n_output, a->n_hidden, a->n_neuro_per_hidden, a->act_func_type);
+
+#if USE_BIAS
+	for (i = 0; i < a->_n_neuro; i++)
+	{
+		nn->bias[i] = rand() & 1 ? a->bias[i] : b->bias[i];
+	}
+#endif
+
+	for (i = 0; i < a->_n_weight; i++)
+	{
+		nn->weight[i] = rand() & 1 ? a->weight[i] : b->weight[i];
+	}
+
+	return nn;
+}
+
 void
 nn_free(NeuralNetwork *nn)
 {
+    free(nn->weight);
+#if USE_BIAS
     free(nn->bias);
+#endif
     free(nn->output);
     free(nn->delta);
-    free(nn->weight);
     free(nn);
 }
 
@@ -132,28 +199,12 @@ nn_duplicate(NeuralNetwork *nn)
     NeuralNetwork *new_nn;
     new_nn = nn_create(nn->n_input, nn->n_output, nn->n_hidden, nn->n_neuro_per_hidden, nn->act_func_type);
 
-    memcpy(new_nn->weight, nn->weight, nn->_n_weight);
-    memcpy(new_nn->bias, nn->bias, nn->_n_neuro);
+    memcpy(new_nn->weight, nn->weight, nn->_n_weight * sizeof(float));
+#if USE_BIAS
+    memcpy(new_nn->bias, nn->bias, nn->_n_neuro * sizeof(float));
+#endif
 
     return new_nn;
-}
-
-void
-nn_copy(NeuralNetwork *src, NeuralNetwork *dest)
-{
-    if (dest->n_input != src->n_input)
-        return;
-    if (dest->n_output != src->n_output)
-        return;
-    if (dest->n_hidden != src->n_hidden)
-        return;
-    if (dest->n_neuro_per_hidden != src->n_neuro_per_hidden)
-        return;
-    if (dest->act_func_type != src->act_func_type)
-        return;
-    
-    memcpy(dest->weight, src->weight, src->_n_weight);
-    memcpy(dest->bias, src->bias, src->_n_neuro);
 }
 
 float *
@@ -163,14 +214,18 @@ nn_run(NeuralNetwork *nn, float *input)
     int j;
     int k;
     float *output;  /* Output buffer of this layer */
+#if USE_BIAS
     float *bias;    /* Bias of this layer */
+#endif
     float *weight;  /* Weight matrix of this layer */
     int n_input;    /* Number of input or Number of output of previous layer */
     int n_output;   /* Number of output of this layer */
 
     n_input = nn->n_input;
     output = nn->output;
+#if USE_BIAS
     bias = nn->bias;
+#endif
     weight = nn->weight;
     /*
      * 1. Process the hidden layers if any
@@ -180,12 +235,18 @@ nn_run(NeuralNetwork *nn, float *input)
         /* So many outputs this layer */
         n_output = nn->n_neuro_per_hidden;
         /* Forward propergation */
+#if USE_BIAS
         nn_forward_propagation(nn, input, n_input, output, n_output, bias, weight);
+#else
+        nn_forward_propagation(nn, input, n_input, output, n_output, weight);
+#endif
 
         /* Move pointer forward to the next layer */
         input = output; /* Output of this layer is the next layer's input */
         output += n_output;             /* Forwrad to the next layer */
+#if USE_BIAS
         bias += n_output;
+#endif
         weight += n_input * n_output;   /* Forward to the next layer */
         /* Set the number of input to the previous layer */
         n_input = nn->n_neuro_per_hidden;
@@ -197,7 +258,11 @@ nn_run(NeuralNetwork *nn, float *input)
     /* So many outputs this layer */
     n_output = nn->n_output;
     /* Forward propergation */
+#if USE_BIAS
     nn_forward_propagation(nn, input, n_input, output, n_output, bias, weight);
+#else
+    nn_forward_propagation(nn, input, n_input, output, n_output, weight);
+#endif
     
     return output;
 }
@@ -213,7 +278,9 @@ nn_train(NeuralNetwork *nn, float *input, float *expect, float rate)
     int n_next_output;   /* Number of the neuro of next layer */
     float *delta;       /* Delta of this layer */
     float *output;      /* Output of this layer */
+#if USE_BIAS
     float *bias;        /* Bias of this layer */
+#endif
     float *next_delta;  /* delta of next layer */
     float *next_weight; /* delta of next layer */
 
@@ -227,7 +294,9 @@ nn_train(NeuralNetwork *nn, float *input, float *expect, float rate)
      */
     n_output = nn->n_output;
     output = &nn->output[nn->_n_neuro - nn->n_output];
+#if USE_BIAS
     bias = &nn->bias[nn->_n_neuro - nn->n_output];
+#endif
     delta = &nn->delta[nn->_n_neuro - nn->n_output];
     
     /*
@@ -241,7 +310,9 @@ nn_train(NeuralNetwork *nn, float *input, float *expect, float rate)
         if (nn->act_func_type == ACT_FUNC_TYPE_SIGMOID)
             delta[i] *= output[i] * (1 - output[i]);
             
+#if USE_BIAS
         bias[i] += delta[i] * rate;
+#endif
     }
 
     /*
@@ -258,7 +329,9 @@ nn_train(NeuralNetwork *nn, float *input, float *expect, float rate)
         /* Move next_delta, delta, output to this layer */
         next_delta = delta;
         delta -= n_output;
+#if USE_BIAS
         bias -= n_output;
+#endif
         output -= n_output;
 
         /*
@@ -281,7 +354,9 @@ nn_train(NeuralNetwork *nn, float *input, float *expect, float rate)
             if (nn->act_func_type == ACT_FUNC_TYPE_SIGMOID)
                 delta[j] *= output[j] * (1 - output[j]);
 
+#if USE_BIAS
             bias[j] += delta[j] * rate;
+#endif
         }
 
         /*
@@ -297,7 +372,6 @@ nn_train(NeuralNetwork *nn, float *input, float *expect, float rate)
 
     /* Move next_delta, output to this layer */
     next_delta = delta;
-    bias -= n_output;
     output = input; /* Input is treated as the output of this "input layer" */
     
     /*
@@ -308,17 +382,118 @@ nn_train(NeuralNetwork *nn, float *input, float *expect, float rate)
 }
 
 void
+nn_plus_randomize(NeuralNetwork *nn, float range)
+{
+    int i;
+
+#if USE_BIAS
+    for (i = 0; i < nn->_n_neuro; i++)
+    {
+        nn->bias[i] += nn_gen_random() * 2 * range;
+    }
+#endif
+
+    for (i = 0; i < nn->_n_weight; i++)
+    {
+        nn->weight[i] += nn_gen_random() * 2 * range;
+    }
+}
+
+void
+nn_plus_randomize_by_rate(NeuralNetwork *nn, float range, float rate)
+{
+    int i;
+
+#if USE_BIAS
+    for (i = 0; i < nn->_n_neuro; i++)
+    {
+		if (random_pick(rate))
+			nn->bias[i] += nn_gen_random() * 2 * range;
+    }
+#endif
+
+    for (i = 0; i < nn->_n_weight; i++)
+    {
+		if (random_pick(rate))
+			nn->weight[i] += nn_gen_random() * 2 * range;
+    }
+
+}
+
+void
 nn_randomize(NeuralNetwork *nn)
 {
     int i;
+
+#if USE_BIAS
     for (i = 0; i < nn->_n_neuro; i++)
     {
-        nn->bias[i] += nn_gen_random();
+        nn->bias[i] = nn_gen_random() * 2;
     }
+#endif
+
     for (i = 0; i < nn->_n_weight; i++)
     {
-        nn->weight[i] += nn_gen_random();
+        nn->weight[i] = nn_gen_random() * 2;
     }
+}
+
+void
+nn_randomize_with_scale(NeuralNetwork *nn, float scale)
+{
+    int i;
+
+#if USE_BIAS
+    for (i = 0; i < nn->_n_neuro; i++)
+    {
+        nn->bias[i] = nn_gen_random() * 2 * scale;
+    }
+#endif
+
+    for (i = 0; i < nn->_n_weight; i++)
+    {
+        nn->weight[i] = nn_gen_random() * 2 * scale ;
+    }
+}
+
+void
+nn_randomize_by_rate(NeuralNetwork *nn, float rate)
+{
+    int i;
+
+#if USE_BIAS
+    for (i = 0; i < nn->_n_neuro; i++)
+    {
+		if (random_pick(rate))
+			nn->bias[i] = nn_gen_random() * 2;
+    }
+#endif
+
+    for (i = 0; i < nn->_n_weight; i++)
+    {
+		if (random_pick(rate))
+			nn->weight[i] = nn_gen_random() * 2;
+    }
+}
+
+void
+nn_randomize_with_scale_by_rate(NeuralNetwork *nn, float scale, float rate)
+{
+    int i;
+#if USE_BIAS
+    for (i = 0; i < nn->_n_neuro; i++)
+    {
+		if (random_pick(rate))
+			nn->bias[i] = nn_gen_random() * 2 * scale;
+    }
+#endif
+
+    for (i = 0; i < nn->_n_weight; i++)
+    {
+		if (random_pick(rate))
+			nn->weight[i] = nn_gen_random() * 2 * scale;
+    }
+
 }
 
 int
@@ -344,10 +519,12 @@ nn_save(NeuralNetwork *nn, const char * file_name)
         goto __exit;
 
     /* write weight and bias */
-    if (fwrite(nn->bias, sizeof(float), nn->_n_neuro, f) < 0)
-        goto __exit;
     if (fwrite(nn->weight, sizeof(float), nn->_n_weight, f) < 0)
         goto __exit;
+#if USE_BIAS
+    if (fwrite(nn->bias, sizeof(float), nn->_n_neuro, f) < 0)
+        goto __exit;
+#endif
 
     ret = 0;
 __exit:
@@ -383,16 +560,20 @@ nn_load(const char *file_name)
     nn->_n_neuro = nn->n_output + nn->n_hidden  * nn->n_neuro_per_hidden;
     nn->_n_weight = nn_compute_n_weight(nn);
 
+#if USE_BIAS
     nn->bias = malloc(nn->_n_neuro * sizeof(float));
+#endif
     nn->output = malloc(nn->_n_neuro * sizeof(float));
     nn->delta = malloc(nn->_n_neuro * sizeof(float));
     nn->weight = malloc(nn->_n_weight * sizeof(float));
 
     /* read weight and bias */
-    if (fread(nn->bias, sizeof(float), nn->_n_neuro, f) < 0)
-        goto __exit;
     if (fread(nn->weight, sizeof(float), nn->_n_weight, f) < 0)
         goto __exit;
+#if USE_BIAS
+    if (fread(nn->bias, sizeof(float), nn->_n_neuro, f) < 0)
+        goto __exit;
+#endif
 
     is_ok = 1;
 __exit:
