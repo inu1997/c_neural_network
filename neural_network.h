@@ -1,11 +1,10 @@
 #ifndef __NEURAL_NETWORK_H
 #define __NEURAL_NETWORK_H
 
-#define USE_BIAS 1
-
 typedef enum {
     ACT_FUNC_TYPE_LINEAR,
     ACT_FUNC_TYPE_SIGMOID,
+	ACT_FUNC_TYPE_TANH,
 } ACT_FUNC_TYPE;
 
 typedef struct {
@@ -13,21 +12,27 @@ typedef struct {
     int n_output;
     int n_hidden;
     int n_neuro_per_hidden;
-    ACT_FUNC_TYPE act_func_type;
+	int use_bias;
+    ACT_FUNC_TYPE act_func_type_hidden;
+    ACT_FUNC_TYPE act_func_type_output;
 
     /* A cache to get the number of neuro and weight */
     int _n_neuro;
     int _n_weight;
 
     float *weight;
-#if USE_BIAS
     float *bias;
-#endif
     float *output;
     float *delta;
 } NeuralNetwork;
 
-NeuralNetwork *nn_create(int n_input, int n_output, int n_hidden, int n_neuro_per_hidden, ACT_FUNC_TYPE act_func_type);
+NeuralNetwork *nn_create(int n_input,
+		int n_output,
+		int n_hidden,
+		int n_neuro_per_hidden,
+		int use_bias,
+		ACT_FUNC_TYPE act_func_type_hidden,
+		ACT_FUNC_TYPE act_func_type_output);
 
 NeuralNetwork *nn_produce(NeuralNetwork *a, NeuralNetwork *b);
 
