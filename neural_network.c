@@ -243,6 +243,10 @@ NeuralNetwork *
 nn_duplicate(NeuralNetwork *nn)
 {
     NeuralNetwork *new_nn;
+
+	if (nn == NULL)
+		return NULL;
+
     new_nn = nn_create(nn->n_input,
 			nn->n_output,
 			nn->n_hidden,
