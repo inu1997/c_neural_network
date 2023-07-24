@@ -266,13 +266,11 @@ float *
 nn_run(NeuralNetwork *nn, float *input)
 {
 	int i;
-	int j;
-	int k;
-	float *output;  /* Output buffer of this layer */
+	float *output;	/* Output buffer of this layer */
 	float *bias;	/* Bias of this layer */
-	float *weight;  /* Weight matrix of this layer */
+	float *weight;	/* Weight matrix of this layer */
 	int n_input;	/* Number of input or Number of output of previous layer */
-	int n_output;   /* Number of output of this layer */
+	int n_output;	/* Number of output of this layer */
 
 	n_input = nn->n_input;
 	output = nn->output;
@@ -331,13 +329,13 @@ nn_train(NeuralNetwork *nn, float *input, float *expect, float rate)
 	int j;
 	int k;
 	float *ret;
-	int n_output;	   /* Number of output of this layer */
-	int n_next_output;   /* Number of the neuro of next layer */
-	float *delta;	   /* Delta of this layer */
-	float *output;	  /* Output of this layer */
+	int n_output;		/* Number of output of this layer */
+	int n_next_output;	/* Number of the neuro of next layer */
+	float *delta;		/* Delta of this layer */
+	float *output;		/* Output of this layer */
 	float *bias;		/* Bias of this layer */
-	float *next_delta;  /* delta of next layer */
-	float *next_weight; /* delta of next layer */
+	float *next_delta;	/* delta of next layer */
+	float *next_weight;	/* delta of next layer */
 
 	/*
 	 * 0. Run once
@@ -392,7 +390,7 @@ nn_train(NeuralNetwork *nn, float *input, float *expect, float rate)
 		{
 			/*
 			 * The j-th neuro's delta is
-			 * "the next layer's delta" dot t"he j-th column vector of the next layer's weight matrix"
+			 * "the next layer's delta" dot "the j-th column vector of the next layer's weight matrix"
 			 * times the derivation of this neuro
 			 */
 			delta[j] = 0;
