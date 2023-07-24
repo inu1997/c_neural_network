@@ -4,28 +4,28 @@
 #include <stdio.h>
 
 typedef enum {
-    ACT_FUNC_TYPE_LINEAR,
-    ACT_FUNC_TYPE_SIGMOID,
+	ACT_FUNC_TYPE_LINEAR,
+	ACT_FUNC_TYPE_SIGMOID,
 	ACT_FUNC_TYPE_TANH,
 } ACT_FUNC_TYPE;
 
 typedef struct {
-    int n_input;
-    int n_output;
-    int n_hidden;
-    int n_neuro_per_hidden;
+	int n_input;
+	int n_output;
+	int n_hidden;
+	int n_neuro_per_hidden;
 	int use_bias;
-    ACT_FUNC_TYPE act_func_type_hidden;
-    ACT_FUNC_TYPE act_func_type_output;
+	ACT_FUNC_TYPE act_func_type_hidden;
+	ACT_FUNC_TYPE act_func_type_output;
 
-    /* A cache to get the number of neuro and weight */
-    int _n_neuro;
-    int _n_weight;
+	/* A cache to get the number of neuro and weight */
+	int _n_neuro;
+	int _n_weight;
 
-    float *weight;
-    float *bias;
-    float *output;
-    float *delta;
+	float *weight;
+	float *bias;
+	float *output;
+	float *delta;
 } NeuralNetwork;
 
 NeuralNetwork *nn_create(int n_input,

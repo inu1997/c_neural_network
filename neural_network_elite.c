@@ -70,8 +70,8 @@ nn_elites_add(NNEliteList *list, NeuralNetwork *nn, float goodness)
 	_nn_elist_list_link(new_node, ptr);
 
 	/* Only 2 possible situation ptr is list_head,
-	 *     1. new node is better. so it breaks and put behind the list_head.
-	 *     2. new node is the worst. so it's put to the last position(behind the list_head)
+	 * 1. new node is better. so it breaks and put behind the list_head.
+	 * 2. new node is the worst. so it's put to the last position(behind the list_head)
 	 */
 	if (ptr == list->list_head &&
 		ptr->goodness < goodness)
@@ -273,6 +273,5 @@ nn_elite_show(NNEliteList *list)
 		printf("Elite %d goodness: %6.2f\n", i, el->goodness);
 		el = el->next;
 	} while (el != list->list_head);
-
 }
 
