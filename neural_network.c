@@ -64,7 +64,7 @@ nn_compute_n_weight(NeuralNetwork *nn)
 		n_weight += n_input * nn->n_neuro_per_hidden;
 		n_input = nn->n_neuro_per_hidden;
 	}
-	
+
 	n_weight += n_input * nn->n_output;
 
 	return n_weight;
@@ -80,7 +80,7 @@ nn_forward_propagation(ACT_FUNC_TYPE act_func_type,
 		float *bias,
 		float *weight)
 {
-	int i; 
+	int i;
 	int j;
 
 	for (i = 0; i < n_output; i++)
@@ -320,7 +320,7 @@ nn_run(NeuralNetwork *nn, float *input)
 			n_output,
 			bias,
 			weight);
-	
+
 	return output;
 }
 
@@ -352,7 +352,7 @@ nn_train(NeuralNetwork *nn, float *input, float *expect, float rate)
 	if (nn->use_bias)
 		bias = &nn->bias[nn->_n_neuro - nn->n_output];
 	delta = &nn->delta[nn->_n_neuro - nn->n_output];
-	
+
 	/*
 	 * Compute delta of this layer, also fix bias of this layer
 	 */
@@ -362,7 +362,7 @@ nn_train(NeuralNetwork *nn, float *input, float *expect, float rate)
 
 		/* Apply derivation of activation function of this neuro */
 		delta[i] *= nn_act_func_derivate(nn->act_func_type_output, output[i]);
-			
+
 		if (nn->use_bias)
 			bias[i] += delta[i] * rate;
 	}
@@ -422,7 +422,7 @@ nn_train(NeuralNetwork *nn, float *input, float *expect, float rate)
 	/* Move next_delta, output to this layer */
 	next_delta = delta;
 	output = input; /* Input is treated as the output of this "input layer" */
-	
+
 	/*
 	 * Correct the next layer's weight
 	 */

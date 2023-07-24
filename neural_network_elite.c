@@ -45,7 +45,7 @@ nn_elites_add(NNEliteList *list, NeuralNetwork *nn, float goodness)
 	new_node->nn = nn;
 	new_node->next = NULL;
 	new_node->prev = NULL;
-	
+
 	if (list->list_head == NULL)
 	{
 		/* First add */
