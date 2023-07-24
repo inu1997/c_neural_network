@@ -20,6 +20,14 @@ NeuralNetwork *nn_elites_get_best(NNEliteList *list);
 
 int nn_elites_get_count(NNEliteList *list);
 
+int nn_elites_save(NNEliteList *list, const char *file_name);
+
+int nn_elites_load(NNEliteList *list, const char *file_name);
+
+int nn_elites_savef(NNEliteList *list, FILE *f);
+
+int nn_elites_loadf(NNEliteList *list, FILE *f);
+
 void nn_elite_show(NNEliteList *list);
 
 #endif /* __NEURAL_NETWORK_ELITE_H */

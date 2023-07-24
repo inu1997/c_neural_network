@@ -555,40 +555,15 @@ nn_randomize_with_scale_by_rate(NeuralNetwork *nn, float scale, float rate)
 int
 nn_save(NeuralNetwork *nn, const char * file_name)
 {
-    FILE *f;
     int ret = -1;
+    FILE *f;
 
     f = fopen(file_name, "wb+");
     if (f == NULL)
         return -1;
-    
-    /* write first informations */
-    if (fwrite(&nn->n_input, sizeof(nn->n_input), 1, f) != 1)
-        goto __exit;
-    if (fwrite(&nn->n_output, sizeof(nn->n_output), 1, f) != 1)
-        goto __exit;
-    if (fwrite(&nn->n_hidden, sizeof(nn->n_hidden), 1, f) != 1)
-        goto __exit;
-    if (fwrite(&nn->n_neuro_per_hidden, sizeof(nn->n_neuro_per_hidden), 1, f) != 1)
-        goto __exit;
-	if (fwrite(&nn->use_bias, sizeof(nn->use_bias), 1, f) != 1)
-		goto __exit;
-    if (fwrite(&nn->act_func_type_hidden, sizeof(nn->act_func_type_hidden), 1, f) != 1)
-        goto __exit;
-    if (fwrite(&nn->act_func_type_output, sizeof(nn->act_func_type_output), 1, f) != 1)
-        goto __exit;
 
-    /* write weight and bias */
-    if (fwrite(nn->weight, sizeof(float), nn->_n_weight, f) != nn->_n_weight)
-        goto __exit;
-	if (nn->use_bias)
-	{
-		if (fwrite(nn->bias, sizeof(float), nn->_n_neuro, f) != nn->_n_neuro)
-			goto __exit;
-	}
+    ret = nn_savef(nn, f);
 
-    ret = 0;
-__exit:
     fclose(f);
     return ret;
 }
@@ -598,29 +573,70 @@ nn_load(const char *file_name)
 {
     NeuralNetwork *nn;
     FILE *f;
-    int is_ok = 0;
 
     f = fopen(file_name, "rb");
     if (f == NULL)
         return NULL;
-    
+
+    nn = nn_loadf(f);
+
+    fclose(f);
+    return nn;
+}
+
+int
+nn_savef(NeuralNetwork *nn, FILE *f)
+{
+    /* write first informations */
+    if (fwrite(&nn->n_input, sizeof(nn->n_input), 1, f) != 1)
+		return -1;
+    if (fwrite(&nn->n_output, sizeof(nn->n_output), 1, f) != 1)
+		return -1;
+    if (fwrite(&nn->n_hidden, sizeof(nn->n_hidden), 1, f) != 1)
+		return -1;
+    if (fwrite(&nn->n_neuro_per_hidden, sizeof(nn->n_neuro_per_hidden), 1, f) != 1)
+		return -1;
+	if (fwrite(&nn->use_bias, sizeof(nn->use_bias), 1, f) != 1)
+		return -1;
+    if (fwrite(&nn->act_func_type_hidden, sizeof(nn->act_func_type_hidden), 1, f) != 1)
+		return -1;
+    if (fwrite(&nn->act_func_type_output, sizeof(nn->act_func_type_output), 1, f) != 1)
+		return -1;
+
+    /* write weight and bias */
+    if (fwrite(nn->weight, sizeof(float), nn->_n_weight, f) != nn->_n_weight)
+		return -1;
+	if (nn->use_bias)
+	{
+		if (fwrite(nn->bias, sizeof(float), nn->_n_neuro, f) != nn->_n_neuro)
+			return -1;
+	}
+
+	return 0;
+}
+
+NeuralNetwork *
+nn_loadf(FILE *f)
+{
+	NeuralNetwork *nn;
+
     nn = malloc(sizeof(*nn));
 
     /* read first informations */
     if (fread(&nn->n_input, sizeof(nn->n_input), 1, f) != 1)
-        goto __exit_1;
+        goto __error_1;
     if (fread(&nn->n_output, sizeof(nn->n_output), 1, f) != 1)
-        goto __exit_1;
+        goto __error_1;
     if (fread(&nn->n_hidden, sizeof(nn->n_hidden), 1, f) != 1)
-        goto __exit_1;
+        goto __error_1;
     if (fread(&nn->n_neuro_per_hidden, sizeof(nn->n_neuro_per_hidden), 1, f) != 1)
-        goto __exit_1;
+        goto __error_1;
 	if (fread(&nn->use_bias, sizeof(nn->use_bias), 1, f) != 1)
-		goto __exit_1;
+		goto __error_1;
     if (fread(&nn->act_func_type_hidden, sizeof(nn->act_func_type_hidden), 1, f) != 1)
-        goto __exit_1;
+        goto __error_1;
     if (fread(&nn->act_func_type_output, sizeof(nn->act_func_type_output), 1, f) != 1)
-        goto __exit_1;
+        goto __error_1;
 
     nn->_n_neuro = nn->n_output + nn->n_hidden  * nn->n_neuro_per_hidden;
     nn->_n_weight = nn_compute_n_weight(nn);
@@ -633,28 +649,21 @@ nn_load(const char *file_name)
 
     /* read weight and bias */
     if (fread(nn->weight, sizeof(float), nn->_n_weight, f) != nn->_n_weight)
-        goto __exit_2;
+        goto __error_2;
 	if (nn->use_bias)
 	{
 		if (fread(nn->bias, sizeof(float), nn->_n_neuro, f) != nn->_n_neuro)
-			goto __exit_2;
+			goto __error_2;
 	}
 
-    is_ok = 1;
-__exit_1:
-    if (!is_ok)
-    {
-		free(nn->weight);
-		free(nn->bias);
-		free(nn->output);
-		free(nn->delta);
-    }
-__exit_2:
-	if (!is_ok)
-	{
-		free(nn);
-        nn = NULL;
-	}
-    fclose(f);
     return nn;
+
+__error_1:
+	free(nn->weight);
+	free(nn->bias);
+	free(nn->output);
+	free(nn->delta);
+__error_2:
+	free(nn);
+	return NULL;
 }

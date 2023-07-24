@@ -1,6 +1,8 @@
 #ifndef __NEURAL_NETWORK_H
 #define __NEURAL_NETWORK_H
 
+#include <stdio.h>
+
 typedef enum {
     ACT_FUNC_TYPE_LINEAR,
     ACT_FUNC_TYPE_SIGMOID,
@@ -59,5 +61,9 @@ void nn_randomize_with_scale_by_rate(NeuralNetwork *nn, float scale, float rate)
 int nn_save(NeuralNetwork *nn, const char * file_name);
 
 NeuralNetwork *nn_load(const char *file_name);
+
+int nn_savef(NeuralNetwork *nn, FILE *f);
+
+NeuralNetwork *nn_loadf(FILE *f);
 
 #endif /* __NEURAL_NETWORK_H */

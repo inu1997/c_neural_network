@@ -168,6 +168,94 @@ nn_elites_get_count(NNEliteList *list)
 	return cnt;
 }
 
+int
+nn_elites_save(NNEliteList *list, const char *file_name)
+{
+	int ret;
+	FILE *f;
+	f = fopen(file_name, "wb");
+	if (f == NULL)
+		return -1;
+
+	ret = nn_elites_savef(list, f);
+
+	fclose(f);
+	return ret;
+}
+
+int
+nn_elites_load(NNEliteList *list, const char *file_name)
+{
+	int ret;
+	FILE *f;
+	f = fopen(file_name, "rb");
+	if (f == NULL)
+		return -1;
+
+	ret = nn_elites_loadf(list, f);
+
+	fclose(f);
+	return ret;
+}
+
+int
+nn_elites_savef(NNEliteList *list, FILE *f)
+{
+	int cnt;
+	_NNEliteList *el;
+
+	if (fwrite(&list->max_len, sizeof(list->max_len), 1, f) != 1)
+		return -1;
+
+	cnt = nn_elites_get_count(list);
+	if (fwrite(&cnt, sizeof(cnt), 1, f) != 1)
+		return -1;
+
+	el = list->list_head;
+	do
+	{
+		if (nn_savef(el->nn, f))
+			return -1;
+
+		if (fwrite(&el->goodness, sizeof(el->goodness), 1, f) != 1)
+			return -1;
+
+		el = el->next;
+	} while (el != list->list_head);
+
+	return 0;
+}
+
+int
+nn_elites_loadf(NNEliteList *list, FILE *f)
+{
+	int cnt;
+	int i;
+	float goodness;
+	NeuralNetwork *nn;
+
+	if (fread(&list->max_len, sizeof(list->max_len), 1, f) != 1)
+		return -1;
+
+	cnt = nn_elites_get_count(list);
+	if (fread(&cnt, sizeof(cnt), 1, f) != 1)
+		return -1;
+
+	for (i = 0; i < cnt; i++)
+	{
+		nn = nn_loadf(f);
+		if (nn == NULL)
+			return -1;
+
+		if (fread(&goodness, sizeof(goodness), 1, f) != 1)
+			return -1;
+
+		nn_elites_add(list, nn, goodness);
+	}
+
+	return 0;
+}
+
 void
 nn_elite_show(NNEliteList *list)
 {
@@ -187,3 +275,4 @@ nn_elite_show(NNEliteList *list)
 	} while (el != list->list_head);
 
 }
+
