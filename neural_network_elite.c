@@ -77,7 +77,7 @@ nn_elites_add(NNEliteList *list, NeuralNetwork *nn, float goodness)
 		ptr->goodness < goodness)
 		list->list_head = new_node;
 
-	if (list->max_len <= nn_elites_get_count(list))
+	if (list->max_len < nn_elites_get_count(list))
 	{
 		_NNEliteList *worst;
 
