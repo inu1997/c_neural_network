@@ -1,0 +1,6 @@
+*.o
+*.d
+tags
+libnn.so
+example1
+example2
