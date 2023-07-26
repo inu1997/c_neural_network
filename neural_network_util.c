@@ -94,7 +94,7 @@ nn_util_get_output(NeuralNetwork *nn, int layer, int *n)
 
 	/* Call the same function since delta/bias/output are arranged the same way */
 	pos = nn_compute_vector_pos(nn, layer, n);
-	
+
 	return &nn->output[pos];
 }
 
@@ -109,7 +109,7 @@ nn_util_get_bias(NeuralNetwork *nn, int layer, int *n)
 
 	/* Call the same function since delta/bias/output are arranged the same way */
 	pos = nn_compute_vector_pos(nn, layer, n);
-	
+
 	return &nn->bias[pos];
 }
 
@@ -125,7 +125,7 @@ nn_util_get_delta(NeuralNetwork *nn, int layer, int *n)
 
 	/* Call the same function since delta/bias/output are arranged the same way */
 	pos = nn_compute_vector_pos(nn, layer, n);
-	
+
 	return &nn->bias[pos];
 }
 
@@ -162,6 +162,6 @@ nn_util_find_most_possible(const float *output, int n)
 			i_max = i;
 		}
 	}
-	
+
 	return i_max;
 }
